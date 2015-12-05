@@ -12,7 +12,7 @@ use S3mu::Utils;
 use Getopt::Long;
 use File::Spec;
 use Parallel::ForkManager;
-use Data::Dumper;
+
 
 my $localdir = '';
 my $dbfile = '';
@@ -90,3 +90,4 @@ while (my ($data, $nrows) = $sqlite->take_some($nprocs)) {
     
 }
        
+say 'We are done here!';
