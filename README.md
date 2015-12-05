@@ -13,7 +13,7 @@ Options:
 
 -s Activates SSL.
 
--r Is used if a previously run of the script ended unexpectly (a server reboot, i.e.).
+-r Is used if a previously run of the script ended unexpectly (a server reboot, i.e.). Unfinished--
 
 Everything else is auto-explained.
 
