@@ -62,31 +62,28 @@ $sqlite->fill_db;
 chdir $localdir;
 
 
-while (my ($data, $nrows) = $sqlite->take_some($nprocs)) {
+my $pm = Parallel::ForkManager->new($nprocs);
+
+
+while (my $data = $sqlite->take_some($nprocs)) {
        
     for my $i (@$data) {
-	
-	my $pm = Parallel::ForkManager->new($nrows);
-	
+
+	my $nstat;
+		
 	$pm->start and next;
-	
+
 	my $job = $amazon->upload($amazon->prepare($i->[1]));
-	
-	if ($job == 1) {
-	    
-	    $sqlite->set_stat($i->[0], 2);
-	} 
-	
-	else {
-	    
-	    $sqlite->set_stat($i->[0],0);
-	    
-	}
+
+	$job == 1 ? $nstat = 2 : $nstat = 0;
+
+	$sqlite->set_stat($i->[0], $nstat);
 	
 	$pm->finish;
 	
-	$pm->wait_all_children;
     }
+
+    $pm->wait_all_children;
     
 }
        

@@ -132,7 +132,7 @@ sub take_some {
     
     $dbh->disconnect;
 
-    return $data, $nrows;    
+    return $data;    
 }
 
 
