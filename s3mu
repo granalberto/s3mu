@@ -12,6 +12,7 @@ use S3mu::Utils;
 use Getopt::Long;
 use File::Spec;
 use Parallel::ForkManager;
+use Pod::Usage;
 
 
 my $localdir = '';
@@ -21,6 +22,7 @@ my $bucket = '';
 my $remotedir = '';
 my $ssl = 0;
 my $nprocs = 5;
+my $help;
 
 GetOptions (
     'localdir=s' => \$localdir,
@@ -29,7 +31,8 @@ GetOptions (
     'bucket=s' => \$bucket,
     'amazondir=s' => \$remotedir,
     'ssl' => \$ssl,
-    'nprocs=i' => \$nprocs
+    'nprocs=i' => \$nprocs,
+    'help' => \$help
     );
 
 
@@ -44,11 +47,12 @@ my $amazon = new S3mu::AmazonS3(bucket => $bucket,
 				nprocs => $nprocs);
 
 my $pm = Parallel::ForkManager->new($nprocs);
-    
+
+pod2usage(2) if $help;
 
 if ($resume) {
     
-    $util->file_exists($dbfile) || (warn "Any problem with SQLite file?\n" && exit 1);
+    $util->file_exists($dbfile) || (pod2usage("\nAny problem with SQLite file?\n"));
     while (my $data = $sqlite->take_some($nprocs)) {
 	for my $i (@$data) {
 	    my $nstat;
@@ -64,8 +68,8 @@ if ($resume) {
     exit 0
 }
 
-$util->file_exists($dbfile) && die "Problems with SQLite file?\nExiting...\n";
-$util->dir_exists($localdir) || die "Problems with local directory?\nExiting...\n";
+$util->file_exists($dbfile) && pod2usage("\nProblems with SQLite file?\n");
+$util->dir_exists($localdir) || pod2usage("\nProblems with local directory?\n");
 
 $sqlite->create_db;
 $sqlite->fill_db;
@@ -87,3 +91,30 @@ while (my $data = $sqlite->take_some($nprocs)) {
 }
        
 say 'We are done here!';
+
+__END__
+
+=encoding utf8
+
+=head1 NAME
+
+s3mu - AmazonS3 Massive and recursive file Uploader
+
+=head1 SYNOPSIS
+
+ -v  prints this help
+ -n  number of concurrent uploads (forks)
+ -l  local dir to upload 
+ -d  database filename
+ -b  bucket name
+ -a  base dirname in AmazonS3 
+ -s  Use SSL (optional)
+ -r  resume (optional)
+
+ Example:
+
+ $ s3mu -n 20 -l ../project/images -d database.db -b images -a images/ -s
+
+ Nota Bene: remember to set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+
+=cut
