@@ -83,27 +83,6 @@ sub fill_db {
 }
 
 
-sub take_one {
-
-    my $self = shift;
-
-    my $dbh = $self->open;
-
-    my $file = $dbh->selectrow_arrayref
-	("SELECT rowid,path FROM queue WHERE stat = 0 LIMIT 1") || 
-	die "No more files to upload\n";;
-
-    $dbh->do("UPDATE queue SET stat = 1 WHERE rowid = $file->[0]");
-    
-    $dbh->disconnect;
-
-    warn "Working with $file->[1]\n";
-
-    return $file;
-    
-}
-
-
 sub take_some {
 
     my $self = shift;
@@ -120,7 +99,7 @@ sub take_some {
 
     my $nrows = $sth->rows;
 
-    die "No more files to upload\n" if ($nrows < 1);
+    return 0 if ($nrows < 1);
 
     my $updater = $dbh->prepare("UPDATE queue SET stat = 1 WHERE rowid = ?");
 

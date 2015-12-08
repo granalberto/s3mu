@@ -42,49 +42,48 @@ my $amazon = new S3mu::AmazonS3(bucket => $bucket,
 				amazondir => $remotedir,
 				ssl => $ssl,
 				nprocs => $nprocs);
+
+my $pm = Parallel::ForkManager->new($nprocs);
     
 
 if ($resume) {
-
+    
     $util->file_exists($dbfile) || (warn "Any problem with SQLite file?\n" && exit 1);
-    $sqlite->take_one;
-    # upload
+    while (my $data = $sqlite->take_some($nprocs)) {
+	for my $i (@$data) {
+	    my $nstat;
+	    $pm->start and next;
+	    my $job = $amazon->upload($amazon->prepare($i->[1]));
+	    $job == 1 ? $nstat = 2 : $nstat = 0;
+	    $sqlite->set_stat($i->[0], $nstat);
+	    $pm->finish;
+	}
+	$pm->wait_all_children;
+    }
+    say 'We are done here!';
     exit 0
-
 }
 
 $util->file_exists($dbfile) && die "Problems with SQLite file?\nExiting...\n";
 $util->dir_exists($localdir) || die "Problems with local directory?\nExiting...\n";
 
-
 $sqlite->create_db;
 $sqlite->fill_db;
 chdir $localdir;
-
-
-my $pm = Parallel::ForkManager->new($nprocs);
-
 
 while (my $data = $sqlite->take_some($nprocs)) {
        
     for my $i (@$data) {
 
 	my $nstat;
-		
 	$pm->start and next;
-
 	my $job = $amazon->upload($amazon->prepare($i->[1]));
-
 	$job == 1 ? $nstat = 2 : $nstat = 0;
-
 	$sqlite->set_stat($i->[0], $nstat);
-	
 	$pm->finish;
-	
     }
 
     $pm->wait_all_children;
-    
 }
        
 say 'We are done here!';
